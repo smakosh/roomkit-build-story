@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>How Roomkit works</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --paper: #fffaf2;
+        --ink: #2a211b;
+        --muted: #7a6d62;
+        --line: #e4dccf;
+        --soft: #efe6d8;
+        --emb: #5d7a5a;
+        --llm: #9a4a2b;
+        --dec: #3f5f7f;
+        --rule: #c98a3a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.55 "Hanken Grotesk",
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 56px 24px 110px;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "Instrument Serif", serif;
+        font-weight: 400;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      h1 {
+        font-size: clamp(48px, 8vw, 92px);
+        line-height: 0.95;
+      }
+      h2 {
+        font-size: 42px;
+        margin: 88px 0 10px;
+      }
+      h3 {
+        font-size: 28px;
+        line-height: 1.1;
+      }
+      .eyebrow,
+      code,
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .lede {
+        font-size: 20px;
+        max-width: 720px;
+        color: #4a3f36;
+        margin: 22px 0 0;
+      }
+      .sub {
+        color: var(--muted);
+        max-width: 720px;
+        margin: 0;
+      }
+      code {
+        font-size: 0.82em;
+        background: var(--soft);
+        padding: 1px 6px;
+        border-radius: 5px;
+      }
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 24px;
+      }
+
+      .flow {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        margin-top: 26px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .step {
+        flex: 1 1 0;
+        min-width: 150px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px 16px 18px;
+        position: relative;
+      }
+      .step b {
+        display: block;
+        font:
+          400 22px/1.1 "Instrument Serif",
+          serif;
+        margin: 8px 0 4px;
+      }
+      .step p {
+        margin: 0;
+        font-size: 13.5px;
+        color: #5a4e44;
+      }
+      .step .n {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: var(--paper);
+        font:
+          500 11px "JetBrains Mono",
+          monospace;
+      }
+      .step.hot {
+        border-color: var(--c, var(--ink));
+        box-shadow: inset 0 4px 0 var(--c, var(--ink));
+      }
+      .arrow {
+        flex: 0 0 34px;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+      }
+      .arrow svg {
+        width: 22px;
+        height: 22px;
+      }
+      .tag {
+        display: inline-block;
+        font:
+          500 10.5px "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--muted);
+      }
+
+      .shots {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 22px;
+      }
+      .shots figure {
+        margin: 0;
+      }
+      .shots img {
+        width: 100%;
+        display: block;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+      }
+      .shots figcaption {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      .grid4 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+        margin-top: 22px;
+      }
+      .ing .big {
+        font:
+          400 46px/1 "Instrument Serif",
+          serif;
+      }
+      .ing p {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: #5a4e44;
+      }
+      .ing .mono {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 10px;
+        display: block;
+      }
+
+      .engine {
+        margin-top: 22px;
+        border-top: 6px solid var(--c);
+      }
+      .engine header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .engine h3 {
+        color: var(--c);
+      }
+      .engine .one {
+        font-size: 17px;
+        margin: 6px 0 0;
+        max-width: 760px;
+      }
+      .engine .flow .step {
+        background: #fffdf8;
+      }
+      .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .fact {
+        font:
+          500 12px "JetBrains Mono",
+          monospace;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--c) 12%, transparent);
+        color: var(--c);
+      }
+      .pros {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 18px;
+      }
+      .pros div {
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-size: 14px;
+      }
+      .pros .good {
+        background: #e8eee2;
+      }
+      .pros .bad {
+        background: #f5e3da;
+      }
+      .pros strong {
+        display: block;
+        font:
+          500 11px "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .pros ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .example {
+        margin-top: 18px;
+        border: 1px dashed #d6c8b4;
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: #fffdf8;
+      }
+      .example .q {
+        font:
+          500 12.5px/1.6 "JetBrains Mono",
+          monospace;
+        color: #4a3f36;
+      }
+      .example .q span {
+        color: var(--c);
+      }
+
+      .rules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+      .rule {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--rule);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 14px;
+      }
+      .rule b {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      th {
+        font:
+          500 11px "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14.5px;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td .dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-right: 8px;
+        background: var(--c);
+      }
+      .meter {
+        display: inline-flex;
+        gap: 3px;
+      }
+      .meter i {
+        width: 14px;
+        height: 8px;
+        border-radius: 2px;
+        background: var(--line);
+      }
+      .meter i.on {
+        background: var(--ink);
+      }
+
+      .files {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 8px 24px;
+        margin-top: 18px;
+      }
+      .files div {
+        display: grid;
+        grid-template-columns: 230px 1fr;
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+      }
+      .files code {
+        background: none;
+        padding: 0;
+        font-size: 12.5px;
+      }
+
+      @media (max-width: 760px) {
+        .shots,
+        .pros {
+          grid-template-columns: 1fr;
+        }
+        .flow {
+          flex-direction: column;
+        }
+        .arrow {
+          transform: rotate(90deg);
+          height: 30px;
+        }
+        .files div {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+<p class="eyebrow"><a href="./" style="color:inherit">&larr; Build story</a> &middot; <a href="architecture.html" style="color:inherit">How it works</a> &middot; <a href="benchmark.html" style="color:inherit">Model benchmark</a></p>
+      <p class="eyebrow">Roomkit · architecture</p>
+      <h1>How Roomkit works</h1>
+      <p class="lede">
+        You answer five questions. A model picks six pieces of furniture from a
+        fixed catalog. The app draws them in an isometric room, and can turn
+        that sketch into a photo.
+      </p>
+
+      <h2>The whole trip</h2>
+      <p class="sub">
+        Every request follows the same five steps. Only step 2 changes,
+        depending on the engine you pick in the header.
+      </p>
+      <div class="flow">
+        <div class="step">
+          <span class="n">1</span><b>Brief</b>
+          <p>Room, style, palette, mood, main use, budget, notes.</p>
+        </div>
+        <div class="arrow">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </div>
+        <div class="step hot" style="--c: var(--llm)">
+          <span class="n">2</span><b>Pick furniture</b>
+          <p>
+            One of three engines ranks the room's products.
+            <span class="tag">/api/design</span>
+          </p>
+        </div>
+        <div class="arrow">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </div>
+        <div class="step hot" style="--c: var(--rule)">
+          <span class="n">3</span><b>Apply rules</b>
+          <p>
+            Same safety net for every engine: essentials, hosts, one per
+            category.
+          </p>
+        </div>
+        <div class="arrow">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </div>
+        <div class="step">
+          <span class="n">4</span><b>Draw the room</b>
+          <p>Each piece is placed by type and drawn from one SVG sprite.</p>
+        </div>
+        <div class="arrow">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </div>
+        <div class="step">
+          <span class="n">5</span><b>Photo (optional)</b>
+          <p>
+            An image model renders the sketch as a real room.
+            <span class="tag">/api/render</span>
+          </p>
+        </div>
+      </div>
+      <div class="shots">
+        <figure>
+          <img
+            src="img/brief.jpg"
+            alt="The brief wizard with the engine and model picker open"
+          />
+          <figcaption>
+            Step 1: the brief, with the engine switch in the header.
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="img/result.jpg"
+            alt="A composed living room with product cards around it"
+          />
+          <figcaption>
+            Steps 3–4: the picks as cards around the drawn room.
+          </figcaption>
+        </figure>
+      </div>
+
+      <h2>What every engine shares</h2>
+      <div class="grid4">
+        <div class="card ing">
+          <div class="big">97</div>
+          <b>Products</b>
+          <p>
+            Name, category, styles, price, materials, description and which
+            rooms they belong in.
+          </p>
+          <span class="mono">lib/catalog.ts</span>
+        </div>
+        <div class="card ing">
+          <div class="big">43</div>
+          <b>Category guides</b>
+          <p>
+            One markdown file per furniture type: when it belongs, how to
+            choose, sizes and clearances, where it goes, budget tiers, style
+            matches, and every piece with its size and spot.
+          </p>
+          <span class="mono">lib/furniture/*.md</span>
+        </div>
+        <div class="card ing">
+          <div class="big">1</div>
+          <b>Sprite</b>
+          <p>
+            Free 3D models rendered once into an isometric SVG. Colours are CSS
+            variables, so any palette works.
+          </p>
+          <span class="mono">public/room-sprite.svg</span>
+        </div>
+        <div class="card ing">
+          <div class="big">1</div>
+          <b>Gateway</b>
+          <p>
+            Every model call (text, embeddings, decisions, images) goes through
+            LLM Gateway with one key.
+          </p>
+          <span class="mono">lib/server/gateway.ts</span>
+        </div>
+      </div>
+
+      <h2>The three engines</h2>
+      <p class="sub">
+        Same input, same output (a list of product ids with a reason each). They
+        differ in how they decide.
+      </p>
+
+      <section class="card engine" style="--c: var(--emb)">
+        <header>
+          <h3>Embeddings</h3>
+          <div class="facts">
+            <span class="fact">1 call</span><span class="fact">~0.7s</span
+            ><span class="fact">~$0.00001</span>
+          </div>
+        </header>
+        <p class="one">
+          Turn words into numbers, then pick the products whose numbers sit
+          closest to your brief.
+        </p>
+        <div class="flow">
+          <div class="step">
+            <span class="n">a</span><b>Split the brief</b>
+            <p>Three short texts: how you'll use it, your style, the mood.</p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">b</span><b>Embed</b>
+            <p>
+              Each text becomes a vector. Product vectors are made once and
+              cached.
+            </p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">c</span><b>Score</b>
+            <p>
+              Similarity per product, weighted 45% use, 35% style, 20% mood,
+              nudged by budget.
+            </p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">d</span><b>Top six</b>
+            <p>Highest scores go to the rules step.</p>
+          </div>
+        </div>
+        <div class="pros">
+          <div class="good">
+            <strong>Good at</strong>
+            <ul>
+              <li>Instant and almost free</li>
+              <li>Same result every time</li>
+            </ul>
+          </div>
+          <div class="bad">
+            <strong>Weak at</strong>
+            <ul>
+              <li>
+                Can't follow “no TV” or “two siblings”: it matches words, it
+                doesn't reason
+              </li>
+              <li>Doesn't read the guides</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="card engine" style="--c: var(--llm)">
+        <header>
+          <h3>LLM (flagship or cheap flash)</h3>
+          <div class="facts">
+            <span class="fact">2 calls + tool</span
+            ><span class="fact">18–60s</span
+            ><span class="fact">$0.002–0.18</span>
+          </div>
+        </header>
+        <p class="one">
+          A language model reads only the guides it needs, then writes the room
+          like a designer would.
+        </p>
+        <div class="flow">
+          <div class="step">
+            <span class="n">a</span><b>Menu</b>
+            <p>
+              The model gets your brief and the list of categories in this room,
+              without products.
+            </p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step hot" style="--c: var(--llm)">
+            <span class="n">b</span><b>Fetch guides</b>
+            <p>
+              It calls <code>readCategoryGuide</code> for each category it
+              wants: markdown guide + products in stock.
+            </p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">c</span><b>Compose</b>
+            <p>
+              A second call gets those guides and returns JSON: title, summary,
+              palette, six pieces with reasons.
+            </p>
+          </div>
+        </div>
+        <div class="example" style="--c: var(--llm)">
+          <div class="q">
+            brief: japandi living room, movie nights, has a cat<br />→
+            readCategoryGuide(<span>"sofa"</span>)
+            readCategoryGuide(<span>"tv"</span>)
+            readCategoryGuide(<span>"media"</span>)
+            readCategoryGuide(<span>"rug"</span>) … <br />→ { items: [ Kobe Low
+            Sofa, Linea Media Bench, Vista 65" OLED TV, Pebble Rounded Rug, … ]
+            }
+          </div>
+        </div>
+        <div class="pros">
+          <div class="good">
+            <strong>Good at</strong>
+            <ul>
+              <li>Best rooms: understands notes, negatives and trade-offs</li>
+              <li>Writes a title, a summary, reasons and its own palette</li>
+            </ul>
+          </div>
+          <div class="bad">
+            <strong>Weak at</strong>
+            <ul>
+              <li>Slow (seconds to a minute)</li>
+              <li>Picks vary a little between runs</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="card engine" style="--c: var(--dec)">
+        <header>
+          <h3>Decision models</h3>
+          <div class="facts">
+            <span class="fact">1 call</span><span class="fact">~0.5s</span
+            ><span class="fact">~$0.0005</span>
+          </div>
+        </header>
+        <p class="one">
+          Ask the model many small typed questions at once. It answers each with
+          a probability instead of text.
+        </p>
+        <div class="flow">
+          <div class="step">
+            <span class="n">a</span><b>Write questions</b>
+            <p>
+              From the guides: a yes/no per optional category and a pick-one per
+              category.
+            </p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step hot" style="--c: var(--dec)">
+            <span class="n">b</span><b>One decision call</b>
+            <p>
+              All questions go to <code>/v1/decisions</code> together. Back come
+              probabilities.
+            </p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">c</span><b>Rank</b>
+            <p>
+              Categories by how likely the room wants them, then the most likely
+              piece in each.
+            </p>
+          </div>
+        </div>
+        <div class="example" style="--c: var(--dec)">
+          <div class="q">
+            want:tv → <span>0.97</span> · want:desk → <span>0.99</span> ·
+            want:wardrobe → <span>0.01</span><br />pick:sofa → Kobe Low Sofa
+            <span>0.68</span>, the other 4 sofas share the rest<br />either:bathtub|shower
+            → shower <span>0.97</span>
+          </div>
+        </div>
+        <div class="pros">
+          <div class="good">
+            <strong>Good at</strong>
+            <ul>
+              <li>
+                As fast as embeddings, but it reads the guides and reasons
+              </li>
+              <li>Same result every time; shows its confidence</li>
+            </ul>
+          </div>
+          <div class="bad">
+            <strong>Weak at</strong>
+            <ul>
+              <li>A few points below LLMs on quality</li>
+              <li>No title, summary or palette of its own</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <h2>The safety net</h2>
+      <p class="sub">
+        Whatever the engine returns passes through the same rules, so every room
+        makes sense. If a pick breaks a rule it is dropped, and the best
+        remaining piece fills the gap.
+      </p>
+      <div class="rules">
+        <div class="rule">
+          <b>Essentials first</b>Living: sofa + coffee table. Bedroom: bed +
+          nightstand. Kitchen: fridge, stove, sink. Bathroom: vanity, toilet,
+          tub or shower.
+        </div>
+        <div class="rule">
+          <b>Hosts</b>A TV needs a media unit or console. A desk chair needs a
+          desk. A hood needs a stove.
+        </div>
+        <div class="rule">
+          <b>One per category</b>No two sofas, no two rugs.
+        </div>
+        <div class="rule">
+          <b>Never both</b>A bathtub and a shower can't share one bathroom.
+        </div>
+        <div class="rule">
+          <b>4 to 6 pieces</b>Always enough to fill the room, never too many.
+        </div>
+      </div>
+      <p class="sub" style="margin-top: 14px">
+        Code: <code>lib/rules.ts</code>
+      </p>
+
+      <h2>After the picks</h2>
+      <div class="grid4">
+        <div class="card ing">
+          <b>Placement</b>
+          <p>
+            Each product has a spot type: wall, corner, centre, on a surface, on
+            the wall, or ceiling. The layout fills the room in that order and
+            sorts by depth.
+          </p>
+          <span class="mono">lib/layout.ts</span>
+        </div>
+        <div class="card ing">
+          <b>Colour and light</b>
+          <p>
+            The palette sets the sprite's CSS colours. Daylight, golden hour,
+            evening and night are overlays plus lamp glows.
+          </p>
+          <span class="mono">lib/iso.ts · room-scene.tsx</span>
+        </div>
+        <div class="card ing">
+          <b>Photo</b>
+          <p>
+            The sketch is turned into a PNG and sent with a written prompt to an
+            image model, which keeps the same layout.
+          </p>
+          <span class="mono">lib/server/render.ts</span>
+        </div>
+      </div>
+
+      <h2>Which engine when</h2>
+      <p class="sub">
+        From the benchmark of 24 briefs, judged blind by three models. Full
+        details in the <a href="benchmark.html">benchmark report</a>.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Engine</th>
+            <th>Quality</th>
+            <th>Speed</th>
+            <th>Cost per room</th>
+            <th>Use it for</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="dot" style="--c: var(--llm)"></span>Flagship LLM
+            </td>
+            <td>
+              <span class="meter"
+                ><i class="on"></i><i class="on"></i><i class="on"></i
+                ><i class="on"></i
+              ></span>
+              82.6
+            </td>
+            <td>~22s</td>
+            <td>~$0.09</td>
+            <td>When cost doesn't matter</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="dot" style="--c: #c98a3a"></span>Cheap flash LLM
+            </td>
+            <td>
+              <span class="meter"
+                ><i class="on"></i><i class="on"></i><i class="on"></i
+                ><i class="on"></i
+              ></span>
+              81.9
+            </td>
+            <td>~53s</td>
+            <td>~$0.01</td>
+            <td>Same quality for less, if you can wait</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="dot" style="--c: var(--dec)"></span>Decision model
+            </td>
+            <td>
+              <span class="meter"
+                ><i class="on"></i><i class="on"></i><i class="on"></i><i></i
+              ></span>
+              76.6
+            </td>
+            <td>~0.5s</td>
+            <td>~$0.0004</td>
+            <td>Instant first draft, live previews</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="--c: var(--emb)"></span>Embeddings</td>
+            <td>
+              <span class="meter"
+                ><i class="on"></i><i class="on"></i><i></i><i></i
+              ></span>
+              64.7
+            </td>
+            <td>~0.7s</td>
+            <td>~$0.00001</td>
+            <td>Simple “more like this” search</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Where things live</h2>
+      <div class="files">
+        <div>
+          <code>components/wizard.tsx</code><span>The five questions</span>
+        </div>
+        <div>
+          <code>components/engine-picker.tsx</code
+          ><span>Engine and model switch</span>
+        </div>
+        <div>
+          <code>app/api/design/route.ts</code><span>Picks the engine</span>
+        </div>
+        <div>
+          <code>lib/server/recommend.ts</code><span>All three engines</span>
+        </div>
+        <div>
+          <code>lib/server/gateway.ts</code
+          ><span>LLM Gateway clients and the decisions call</span>
+        </div>
+        <div>
+          <code>lib/furniture/*.md</code><span>The 43 category guides</span>
+        </div>
+        <div><code>lib/rules.ts</code><span>The safety net</span></div>
+        <div><code>lib/catalog.ts</code><span>The 97 products</span></div>
+        <div><code>lib/layout.ts</code><span>Where each piece goes</span></div>
+        <div>
+          <code>components/room-scene.tsx</code><span>Draws the room</span>
+        </div>
+        <div><code>app/api/render/route.ts</code><span>Photo render</span></div>
+        <div>
+          <code>bench/</code><span>Benchmark scripts, data and report</span>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
