@@ -405,9 +405,10 @@
       <p class="eyebrow">Roomkit · architecture</p>
       <h1>How Roomkit works</h1>
       <p class="lede">
-        You answer five questions. A model picks six pieces of furniture from a
-        fixed catalog. The app draws them in an isometric room, and can turn
-        that sketch into a photo.
+        You answer five questions. One of four engines picks up to six pieces
+        from 2,892 real IKEA products. The app draws each one as an isometric
+        SVG at its real size and colour, lets you drag them around, and can
+        turn that sketch into a photo.
       </p>
 
       <h2>The whole trip</h2>
@@ -433,7 +434,7 @@
         <div class="step hot" style="--c: var(--llm)">
           <span class="n">2</span><b>Pick furniture</b>
           <p>
-            One of three engines ranks the room's products.
+            One of four engines ranks the room's IKEA products.
             <span class="tag">/api/design</span>
           </p>
         </div>
@@ -510,16 +511,16 @@
       <h2>What every engine shares</h2>
       <div class="grid4">
         <div class="card ing">
-          <div class="big">97</div>
-          <b>Products</b>
+          <div class="big">2,892</div>
+          <b>IKEA products</b>
           <p>
-            Name, category, styles, price, materials, description and which
-            rooms they belong in.
+            Name, type, category, styles, price, materials, real size and
+            colour, rating, IKEA link and which of the 12 rooms they belong in.
           </p>
-          <span class="mono">lib/catalog.ts</span>
+          <span class="mono">data/ikea/catalog.json</span>
         </div>
         <div class="card ing">
-          <div class="big">43</div>
+          <div class="big">47</div>
           <b>Category guides</b>
           <p>
             One markdown file per furniture type: when it belongs, how to
@@ -529,13 +530,14 @@
           <span class="mono">lib/furniture/*.md</span>
         </div>
         <div class="card ing">
-          <div class="big">1</div>
-          <b>Sprite</b>
+          <div class="big">1 + 2,892</div>
+          <b>SVGs</b>
           <p>
-            Free 3D models rendered once into an isometric SVG. Colours are CSS
-            variables, so any palette works.
+            Free 3D models rendered into one room sprite (colours are CSS
+            variables), plus one SVG per IKEA product, stretched to its real
+            size and tinted its real colour.
           </p>
-          <span class="mono">public/room-sprite.svg</span>
+          <span class="mono">public/room-sprite.svg · public/ikea/</span>
         </div>
         <div class="card ing">
           <div class="big">1</div>
@@ -548,11 +550,89 @@
         </div>
       </div>
 
-      <h2>The three engines</h2>
+      <h2>The four engines</h2>
       <p class="sub">
         Same input, same output (a list of product ids with a reason each). They
         differ in how they decide.
       </p>
+
+      <section class="card engine" style="--c: #b5653f">
+        <header>
+          <h3>Instant</h3>
+          <div class="facts">
+            <span class="fact">0 calls</span><span class="fact">~0.0s</span
+            ><span class="fact">$0</span>
+          </div>
+        </header>
+        <p class="one">
+          Score every IKEA piece for the room on the server, without calling a
+          model. The default engine, and the only one that works without a key.
+        </p>
+        <div class="flow">
+          <div class="step">
+            <span class="n">a</span><b>Pool</b>
+            <p>Every IKEA product that fits the room (1,574 for a living room).</p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">b</span><b>Score</b>
+            <p>Style, palette, budget, rating and main use, with a little randomness.</p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">c</span><b>Rank roles</b>
+            <p>Must-have pieces first; your main use and notes lift their categories.</p>
+          </div>
+          <div class="arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+          <div class="step">
+            <span class="n">d</span><b>Best per role</b>
+            <p>The top piece of each role goes to the rules step.</p>
+          </div>
+        </div>
+        <div class="pros">
+          <div class="good">
+            <strong>Good at</strong>
+            <ul>
+              <li>Instant, free, no key needed</li>
+              <li>A slightly different room on each run</li>
+            </ul>
+          </div>
+          <div class="bad">
+            <strong>Weak at</strong>
+            <ul>
+              <li>Reads notes only for category names, it doesn't reason</li>
+              <li>Doesn't read the guides</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       <section class="card engine" style="--c: var(--emb)">
         <header>
@@ -871,7 +951,8 @@
       <h2>Which engine when</h2>
       <p class="sub">
         From the benchmark of 24 briefs, judged blind by three models. Full
-        details in the <a href="benchmark.html">benchmark report</a>.
+        details in the <a href="benchmark.html">benchmark report</a>. It ran on Oct 12 on the first 97-product catalog, before the IKEA
+        catalog and the Instant engine.
       </p>
       <table>
         <thead>
@@ -956,17 +1037,20 @@
           <code>app/api/design/route.ts</code><span>Picks the engine</span>
         </div>
         <div>
-          <code>lib/server/recommend.ts</code><span>All three engines</span>
+          <code>lib/server/recommend.ts</code><span>Embeddings, LLM and decision engines</span>
+        </div>
+        <div>
+          <code>lib/server/ikea.ts</code><span>IKEA scoring and the Instant engine</span>
         </div>
         <div>
           <code>lib/server/gateway.ts</code
           ><span>LLM Gateway clients and the decisions call</span>
         </div>
         <div>
-          <code>lib/furniture/*.md</code><span>The 43 category guides</span>
+          <code>lib/furniture/*.md</code><span>The 47 category guides</span>
         </div>
         <div><code>lib/rules.ts</code><span>The safety net</span></div>
-        <div><code>lib/catalog.ts</code><span>The 97 products</span></div>
+        <div><code>data/ikea/catalog.json</code><span>The 2,892 IKEA products</span></div>
         <div><code>lib/layout.ts</code><span>Where each piece goes</span></div>
         <div>
           <code>components/room-scene.tsx</code><span>Draws the room</span>
