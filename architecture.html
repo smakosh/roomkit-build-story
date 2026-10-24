@@ -406,9 +406,11 @@
       <h1>How Roomkit works</h1>
       <p class="lede">
         You answer five questions. One of four engines picks up to six pieces
-        from 2,892 real IKEA products. The app draws each one as an isometric
-        SVG at its real size and colour, lets you drag them around, and can
-        turn that sketch into a photo.
+        from 3,063 real IKEA products. The app draws each one as an isometric
+        SVG at its real size and colour, lets you drag and rotate them, prices
+        them in your country, stacks rooms into floors, shares the home with a
+        link, and can turn that sketch into a photo. Open any room's assembly
+        guide and every piece builds itself, step by step, in 3D.
       </p>
 
       <h2>The whole trip</h2>
@@ -948,6 +950,81 @@
         </div>
       </div>
 
+      <h2>Assembly guides</h2>
+      <p class="sub">
+        Added Oct 24. Each buildable piece in a room becomes an instruction
+        drawing on a turntable: parts fly in one step at a time, fittings
+        first, in the order you would fit them. The drawings use the
+        <a href="https://github.com/wheresryan22/anatomy">Anatomy</a>
+        isometric kit (MIT).
+      </p>
+      <div class="grid4">
+        <div class="card ing">
+          <b>1 · Classify</b>
+          <p>
+            The product's name, type, description, materials, colours and
+            sprite model decide what it is: sliding or hinged or glass doors,
+            how many drawers, metal or wooden legs, pedestal or four legs,
+            shell or wooden chair, padded or hard seat, loft or bunk bed,
+            chaise or straight sofa, how many lamp heads.
+          </p>
+          <span class="mono">lib/assembly.ts · caseOptions, chairStyle</span>
+        </div>
+        <div class="card ing">
+          <b>2 · Build the recipe</b>
+          <p>
+            One recipe per kind of thing turns the real size into parts
+            (convex boxes and prisms) and ordered steps with a tool and
+            fittings each: cabinets, wardrobes, dressers, KALLAX grids, metal
+            racks, TROFAST boxes, tables, drawer-unit and sit/stand desks,
+            chairs, POÄNG, sofas, beds, cribs, lamps, mirrors, carts, coat
+            stands.
+          </p>
+          <span class="mono">lib/assembly.ts · 2,632 of 3,063 products build</span>
+        </div>
+        <div class="card ing">
+          <b>3 · Pose and draw</b>
+          <p>
+            Every frame, each part's pose comes from its moves (glide, tilt,
+            swing on a hinge). Parts are shaded in four tones from their
+            facing, and painted back to front: where two outlines overlap, a
+            separating face plane decides which is in front.
+          </p>
+          <span class="mono">lib/anatomy/solid3d.ts · lib/assembly-scene.ts</span>
+        </div>
+        <div class="card ing">
+          <b>4 · Prove it</b>
+          <p>
+            <code>npm run assembly:audit</code> builds every product and checks
+            it against its own listing: door and drawer counts, sliding and
+            glass doors, racks, pedestals, chaises, lamp heads, seat finish,
+            plus bad geometry and overlapping parts. It exits non-zero on any
+            problem. A Playwright test drives the guide in the real app.
+          </p>
+          <span class="mono">scripts/assembly-audit.ts · 28 checks, 0 overlaps</span>
+        </div>
+      </div>
+      <div class="shots">
+        <figure>
+          <img
+            src="img/assembly-guide.jpg"
+            alt="The assembly guide: a HEMNES daybed on a turntable with the step list beside it"
+          />
+          <figcaption>
+            The guide: pieces on the left, the turntable, the steps with tools and fittings on the right.
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="img/assembly-sheet.jpg"
+            alt="Twelve IKEA pieces mid-assembly"
+          />
+          <figcaption>
+            Twelve products mid-build: each recipe matches its listing.
+          </figcaption>
+        </figure>
+      </div>
+
       <h2>Which engine when</h2>
       <p class="sub">
         From the benchmark of 24 briefs, judged blind by three models. Full
@@ -1050,7 +1127,13 @@
           <code>lib/furniture/*.md</code><span>The 47 category guides</span>
         </div>
         <div><code>lib/rules.ts</code><span>The safety net</span></div>
-        <div><code>data/ikea/catalog.json</code><span>The 2,892 IKEA products</span></div>
+        <div><code>data/ikea/catalog.json</code><span>The 3,063 IKEA products</span></div>
+        <div><code>lib/home.ts · lib/server/homes.ts</code><span>Floors, rooms, autosave and share links</span></div>
+        <div><code>lib/countries.ts · lib/server/localize.ts</code><span>Prices and links in 28 IKEA countries</span></div>
+        <div><code>lib/assembly.ts</code><span>Assembly recipes: parts and steps per product</span></div>
+        <div><code>lib/anatomy/</code><span>Anatomy iso kit, 3D solids and draw order</span></div>
+        <div><code>components/assembly/</code><span>The turntable figure and the guide dialog</span></div>
+        <div><code>scripts/assembly-audit.ts</code><span>Checks every product's build against its listing</span></div>
         <div><code>lib/layout.ts</code><span>Where each piece goes</span></div>
         <div>
           <code>components/room-scene.tsx</code><span>Draws the room</span>
